@@ -12,12 +12,17 @@ final DateTime fixedNoon = DateTime(2026, 5, 4, 12);
 /// Controllers wired to fake storage and a product service with no latency.
 Future<ShopControllers> buildControllers({
   Map<String, Object> initialPrefs = const <String, Object>{},
+  bool seedDemoAccount = true,
 }) async {
   SharedPreferences.setMockInitialValues(initialPrefs);
   final SharedPreferences prefs = await SharedPreferences.getInstance();
+  final StorageService storage = StorageService(prefs);
+  if (seedDemoAccount) {
+    await storage.ensureDemoAccount();
+  }
 
   return ShopControllers.create(
-    storage: StorageService(prefs),
+    storage: storage,
     productService: ProductService(latency: Duration.zero),
     clock: () => fixedNoon,
     // No fake network delay: the busy state is covered by its own test.
@@ -65,8 +70,8 @@ Future<void> settleBoot(
 /// Signs in through the form, the way a user would.
 Future<void> signIn(
   WidgetTester tester, {
-  String email = 'a@b.com',
-  String password = 'flutter',
+  String email = 'student@school.edu',
+  String password = 'flutter123',
 }) async {
   await tester.enterText(find.byKey(const Key('email_field')), email);
   await tester.enterText(find.byKey(const Key('password_field')), password);

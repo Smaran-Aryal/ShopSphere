@@ -83,10 +83,19 @@ void main() {
     });
 
     test('a signed in account without a name falls back to the email', () async {
-      await auth.signIn(email: 'student@school.edu', password: 'flutter123');
+      // Register first, then sign in to test the fallback (the demo account has a name)
+      await auth.register(
+        name: '',
+        email: 'noname@school.edu',
+        password: 'flutter123',
+      );
+      await auth.signOut();
 
-      expect(auth.displayName, 'student');
-      expect(auth.initial, 'S');
+      await auth.signIn(email: 'noname@school.edu', password: 'flutter123');
+
+      // Account registered with empty name falls back to email prefix
+      expect(auth.displayName, 'noname');
+      expect(auth.initial, 'N');
     });
 
     test('a reset link remembers the address until it is dismissed', () async {
@@ -128,10 +137,17 @@ void main() {
     });
 
     test('the busy flag is on while a request runs', () async {
+      // Need a registered account for signIn to work
       final AuthController slow = AuthController(
         storage: StorageService(await _prefs()),
         requestLatency: const Duration(milliseconds: 40),
       );
+      await slow.register(
+        name: 'Test User',
+        email: 'a@b.com',
+        password: 'flutter123',
+      );
+      await slow.signOut();
 
       final Future<void> pending = slow.signIn(
         email: 'a@b.com',

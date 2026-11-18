@@ -13,7 +13,7 @@ const Size phone = Size(390, 844);
 void main() {
   testWidgets('the shop lays out on a small phone', (WidgetTester tester) async {
     final controllers = await pumpShop(tester, size: phone);
-    await signIn(tester, email: 'ada@shop.dev');
+    await signIn(tester);
 
     expect(tester.takeException(), isNull);
     expect(find.byKey(const Key('product_p1')), findsOneWidget);

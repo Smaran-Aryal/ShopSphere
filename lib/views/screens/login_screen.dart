@@ -4,12 +4,9 @@ import '../../controllers/auth_controller.dart';
 import '../../controllers/shop_scope.dart';
 import '../../core/theme/app_tokens.dart';
 import '../widgets/auth_scaffold.dart';
+import '../widgets/shop_snack.dart';
 
-/// View: the sign in page.
-///
-/// The screen owns the text controllers and the form key, everything else
-/// (validation rules, the session, which page comes next) belongs to
-/// [AuthController].
+/// Sign in page; form/validation owned by [AuthController].
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -36,10 +33,13 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _signIn(AuthController auth) async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     FocusScope.of(context).unfocus();
-    await auth.signIn(
+    final String? error = await auth.signIn(
       email: _emailController.text,
       password: _passwordController.text,
     );
+    if (error != null && mounted) {
+      ShopSnack.show(context, error);
+    }
   }
 
   void _fillDemo() {
@@ -91,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Icon(Icons.lock_rounded, size: 14, color: scheme.onSurfaceVariant),
               const SizedBox(width: 6),
               Text(
-                'Any email works · $demoPassword',
+                'Demo: $demoEmail · $demoPassword',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),

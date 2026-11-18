@@ -49,9 +49,9 @@ Useful extras:
 | `flutter clean && flutter pub get` | fix a broken build folder |
 | `flutter build apk --release` | Android release build |
 
-**Sign in:** any valid e‑mail plus a password of at least 6 characters — there is
-no backend. The *Fill demo account* button types `student@school.edu` /
-`flutter123` for you.
+**Sign in:** enter an email that has been registered and its password.
+The demo account `student@school.edu` / `flutter123` is seeded on first launch.
+The *Fill demo account* button types those credentials for you.
 
 **Demo behaviour worth trying**
 
@@ -83,13 +83,15 @@ prefetches the products, so the shop page never shows an empty grid.
 stored, so the next launch goes straight to the login screen. Replay it any time
 from the avatar menu → *Show onboarding*.
 
-**Sign in** — gradient brand mark, form validation that comes from the
-controller, show/hide password, demo autofill, busy state on the button, and
-links to the other two account pages.
+**Sign in** — gradient brand mark, form validation from the controller,
+show/hide password, demo autofill, busy state on the button, and links to the
+other two account pages. Credentials are verified against the stored user
+records; wrong email or password shows a snack bar error.
 
 **Create account** — name, email, password and a repeat field, with a live
 four segment strength meter and a privacy note that explains what is stored
-where. Registering signs the new account straight in.
+where. Duplicate email is rejected. Registering signs the new account straight
+in.
 
 **Forgot password** — one field, then a "check your inbox" panel with a resend
 button and a way back to a different address. There is no backend, so the panel
@@ -145,7 +147,7 @@ lib/
 │
 ├── services/                        data sources, the only async / IO boundary
 │   ├── product_service.dart         "API" call: async fetch + jsonDecode → List<Product>
-│   └── storage_service.dart         SharedPreferences: session email + cart as JSON
+│   └── storage_service.dart         SharedPreferences: session, cart, registered users (email → {name, email, password})
 │
 ├── data/
 │   └── sample_products.dart         the raw JSON payload that stands in for the API
@@ -232,7 +234,7 @@ The rules that make it MVC:
 |---|---|---|
 | `BootController` | start up | "show the splash for at least 1.1 s, fetch in the meantime" |
 | `OnboardingController` | first run | "show the tour once, remember that it was seen" |
-| `AuthController` | the session and the three account pages | "a password needs 6 characters", "remember the email" |
+| `AuthController` | the session and the three account pages | "a password needs 6 characters", "verify stored password" |
 | `CatalogController` | products + filters | "sorted by rating when nothing else is chosen" |
 | `CartController` | quantities + money | "free delivery above \$75", "never more than the stock on hand" |
 
@@ -309,7 +311,7 @@ return (jsonDecode(response.body) as List)
 
 and nothing else changes.
 
-Two things are stored on the device with `SharedPreferences`:
+Four things are stored on the device with `SharedPreferences`:
 
 | Key | Value |
 |---|---|
@@ -317,9 +319,13 @@ Two things are stored on the device with `SharedPreferences`:
 | `user_name` | `Ada Lovelace`, typed on the register page, cleared on sign out |
 | `saved_cart` | `{"p1": 2, "p5": 1}`, the cart survives a restart |
 | `onboarding_done` | `true` once the tour was finished or skipped |
+| `registered_users` | `{email: {name, email, password}}` — accounts created via register |
 
 The cart stores ids only. Names and prices are resolved from the catalog at read
 time, so the stored payload can never go stale.
+
+Registered accounts are created on the *Create account* page. On first launch a
+demo account (`student@school.edu` / `flutter123`) is seeded automatically.
 
 Checkout math (all in `CartController`):
 

@@ -35,13 +35,13 @@ void main() {
     test('sign in then sign out round trips through storage', () async {
       final ShopControllers controllers = await buildControllers();
 
-      await controllers.auth.signIn(email: 'ada@shop.dev', password: 'flutter');
+      await controllers.auth.signIn(email: 'student@school.edu', password: 'flutter123');
       expect(controllers.auth.isSignedIn, isTrue);
-      expect(controllers.auth.displayName, 'ada');
-      expect(controllers.auth.initial, 'A');
+      expect(controllers.auth.displayName, 'Student');
+      expect(controllers.auth.initial, 'S');
 
       final SharedPreferences prefs = await SharedPreferences.getInstance();
-      expect(prefs.getString(StorageService.emailKey), 'ada@shop.dev');
+      expect(prefs.getString(StorageService.emailKey), 'student@school.edu');
 
       await controllers.auth.signOut();
       expect(controllers.auth.isSignedIn, isFalse);
@@ -52,13 +52,15 @@ void main() {
 
     test('a remembered session is restored on the next launch', () async {
       SharedPreferences.setMockInitialValues(<String, Object>{
-        StorageService.emailKey: 'ada@shop.dev',
+        StorageService.emailKey: 'student@school.edu',
       });
       final SharedPreferences prefs = await SharedPreferences.getInstance();
-      final AuthController auth = AuthController(storage: StorageService(prefs));
+      final StorageService storage = StorageService(prefs);
+      await storage.ensureDemoAccount();
+      final AuthController auth = AuthController(storage: storage);
 
       expect(auth.isSignedIn, isTrue);
-      expect(auth.currentUserEmail, 'ada@shop.dev');
+      expect(auth.currentUserEmail, 'student@school.edu');
 
       auth.dispose();
     });

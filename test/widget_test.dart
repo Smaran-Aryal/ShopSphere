@@ -33,10 +33,10 @@ void main() {
   ) async {
     await pumpShop(tester);
 
-    await signIn(tester, email: 'ada@shop.dev');
+    await signIn(tester);
 
     expect(find.text('Good afternoon'), findsOneWidget);
-    expect(find.text('ada'), findsOneWidget);
+    expect(find.text('Student'), findsOneWidget);
     expect(find.byKey(const Key('product_p1')), findsOneWidget);
     expect(find.byKey(const Key('open_cart')), findsOneWidget);
     expect(find.text('10 products'), findsOneWidget);
@@ -252,7 +252,7 @@ void main() {
     WidgetTester tester,
   ) async {
     await pumpShop(tester);
-    await signIn(tester, email: 'ada@shop.dev');
+    await signIn(tester);
 
     await tester.tap(find.byKey(const Key('logout_button')));
     await tester.pumpAndSettle();

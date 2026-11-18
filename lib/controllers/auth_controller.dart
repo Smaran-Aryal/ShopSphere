@@ -1,21 +1,11 @@
 import 'package:flutter/foundation.dart';
-
 import '../models/password_strength.dart';
 import '../services/storage_service.dart';
 
-/// Which of the three account pages is on screen.
-///
-/// The root widget switches on it, so moving between sign in, register and
-/// forgot password never pushes a route: it is a controller decision, like the
-/// rest of the navigation in this app.
+/// Which account page is showing (sign in, register, forgot password).
 enum AuthMode { signIn, register, forgotPassword }
 
-/// Controller: owns the session and every account rule.
-///
-/// It holds the signed in email and name, restores them from storage on start
-/// up, keeps the form rules (so a screen never invents its own validation) and
-/// notifies the view when something changed. The view renders, the controller
-/// decides.
+/// Owns the session and account rules; the view renders, the controller decides.
 class AuthController extends ChangeNotifier {
   AuthController({
     required StorageService storage,
@@ -28,15 +18,15 @@ class AuthController extends ChangeNotifier {
     _name = _storage.savedName;
   }
 
-  /// Shortest password we accept. The register meter uses the same number.
+  /// Shortest password we accept (also used by register meter).
   static const int minPasswordLength = PasswordStrength.minimumLength;
 
   final StorageService _storage;
 
-  /// Injectable clock so the greeting is deterministic in tests.
+  /// Injectable clock for deterministic greetings in tests.
   final DateTime Function() _clock;
 
-  /// How long a fake request takes, so the busy state on the button is real.
+  /// Simulated network latency so the busy state is visible.
   final Duration _requestLatency;
 
   String? _email;
@@ -66,8 +56,7 @@ class AuthController extends ChangeNotifier {
 
   bool get resetSent => _resetEmail != null;
 
-  /// "student@school.edu" -> "student", used for the greeting on the home page.
-  /// A registered account greets with the name it signed up with.
+  /// Email fallback: "student@school.edu" -> "student".
   String get displayName {
     final String name = _name?.trim() ?? '';
     if (name.isNotEmpty) return name;
@@ -83,15 +72,13 @@ class AuthController extends ChangeNotifier {
     return name.isEmpty ? '?' : name[0].toUpperCase();
   }
 
-  /// Time based greeting, so the header feels alive.
+  /// Time-based greeting for the header.
   String get greeting {
     final int hour = _clock().hour;
     if (hour < 12) return 'Good morning';
     if (hour < 18) return 'Good afternoon';
     return 'Good evening';
   }
-
-  // ---------------------------------------------------------------- validators
 
   static String? validateEmail(String? value) {
     final String email = (value ?? '').trim();
@@ -117,7 +104,6 @@ class AuthController extends ChangeNotifier {
     return null;
   }
 
-  /// Both fields must match, and the check runs after the password rule.
   static String? validateConfirmation(
     String? password,
     String? confirmation,
@@ -127,11 +113,9 @@ class AuthController extends ChangeNotifier {
     return null;
   }
 
-  /// Shared strength rule, exposed for the register meter.
+  /// Shared password strength rule for the register meter.
   static PasswordStrength strengthOf(String? value) =>
       PasswordStrength.from(value);
-
-  // ------------------------------------------------------------------- modes
 
   void showSignIn() => _setMode(AuthMode.signIn);
 
@@ -147,21 +131,35 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ---------------------------------------------------------------- requests
-
-  Future<void> signIn({required String email, required String password}) async {
+  /// Attempts to sign in; returns error message or null on success.
+  Future<String?> signIn({required String email, required String password}) async {
     _startRequest();
     await Future<void>.delayed(_requestLatency);
 
-    _email = email.trim();
-    _name = _storage.savedName;
+    final String trimmedEmail = email.trim();
+    final String storedPassword = _storage.passwordOf(trimmedEmail) ?? '';
+    if (storedPassword.isEmpty) {
+      _endRequest();
+      return 'User not found';
+    }
+    if (storedPassword != password) {
+      _endRequest();
+      return 'Incorrect password';
+    }
+
+    _email = trimmedEmail;
+    _name = _storage.nameOf(trimmedEmail);
     await _storage.saveEmail(_email!);
+    if (_name != null) {
+      await _storage.saveName(_name!);
+    }
 
     _endRequest();
+    return null;
   }
 
-  /// Creates the account and signs it straight in, the way most shops do.
-  Future<void> register({
+  /// Creates account and signs in; returns error message or null on success.
+  Future<String?> register({
     required String name,
     required String email,
     required String password,
@@ -169,16 +167,26 @@ class AuthController extends ChangeNotifier {
     _startRequest();
     await Future<void>.delayed(_requestLatency);
 
+    final String? error = await _storage.createAccount(
+      name: name,
+      email: email,
+      password: password,
+    );
+    if (error != null) {
+      _endRequest();
+      return error;
+    }
+
     _name = name.trim();
     _email = email.trim();
     await _storage.saveName(_name!);
     await _storage.saveEmail(_email!);
 
     _endRequest();
+    return null;
   }
 
-  /// Pretends to mail a reset link. There is no backend, so the confirmation
-  /// screen is driven by this flag instead of a network response.
+/// Pretends to send a reset link (no backend).
   Future<void> sendResetLink({required String email}) async {
     _startRequest();
     await Future<void>.delayed(_requestLatency);
@@ -188,7 +196,7 @@ class AuthController extends ChangeNotifier {
     _endRequest();
   }
 
-  /// Dismisses the "check your inbox" panel so the form can be used again.
+  /// Dismisses the reset confirmation panel.
   void dismissResetConfirmation() {
     if (_resetEmail == null) return;
     _resetEmail = null;

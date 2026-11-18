@@ -5,12 +5,9 @@ import '../../controllers/shop_scope.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../models/password_strength.dart';
 import '../widgets/auth_scaffold.dart';
+import '../widgets/shop_snack.dart';
 
-/// View: the create account page.
-///
-/// Four fields, a live strength meter and one action. The rules (name length,
-/// password length, both passwords equal) live in [AuthController]; the meter
-/// reads the same rule, so it can never promise more than validation allows.
+/// Register page; form/validation owned by [AuthController].
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -40,11 +37,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _register(AuthController auth) async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     FocusScope.of(context).unfocus();
-    await auth.register(
+    final String? error = await auth.register(
       name: _nameController.text,
       email: _emailController.text,
       password: _passwordController.text,
     );
+    if (error != null && mounted) {
+      ShopSnack.show(context, error);
+    }
   }
 
   @override
@@ -241,7 +241,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 }
 
-/// Four segment meter that fills up with the graded password.
+/// Four-segment password strength meter.
 class _StrengthMeter extends StatelessWidget {
   const _StrengthMeter({required this.strength});
 

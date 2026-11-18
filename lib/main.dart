@@ -18,22 +18,19 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final SharedPreferences prefs = await SharedPreferences.getInstance();
+  final StorageService storage = StorageService(prefs);
+  await storage.ensureDemoAccount();
 
   runApp(
     ShopApp(
       controllers: ShopControllers.create(
-        storage: StorageService(prefs),
+        storage: storage,
       ),
     ),
   );
 }
 
-/// Root widget: theme + the single gate that decides which screen is on
-/// screen: splash, onboarding, one of the three account pages, or the shop.
-///
-/// Sign in, sign out and moving between the account pages never touch the
-/// [Navigator]. They flip a flag on a controller and this widget swaps the
-/// page, which is why there is no route stack to keep in sync.
+/// Root widget: theme + gate that picks screen (splash/onboarding/auth/shop).
 class ShopApp extends StatefulWidget {
   const ShopApp({super.key, required this.controllers});
 
@@ -73,12 +70,6 @@ class _ShopAppState extends State<ShopApp> {
             final bool onboarded = widget.controllers.onboarding.isComplete;
             final bool signedIn = auth.isSignedIn;
 
-            // The whole navigation of the app is this one switch: splash,
-            // onboarding, login, shop.
-            //
-            // The screens are deliberately not `const`: a canonicalised const
-            // widget is identical to the previous one, and Flutter skips the
-            // rebuild when the widget it is handed did not change.
             final Widget screen = switch ((
               booted,
               onboarded,
