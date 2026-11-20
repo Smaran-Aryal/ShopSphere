@@ -30,8 +30,6 @@ Future<ShopControllers> buildControllers({
   );
 }
 
-/// Mounts the whole app with the given controllers.
-///
 /// The surface is enlarged so a full phone sized layout is on screen: on the
 /// default 800x600 test window the catalog grid starts below the fold.
 /// Onboarding is marked as seen by default, so tests start at the login page.
